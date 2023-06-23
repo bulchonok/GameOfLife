@@ -41,12 +41,6 @@ def expandBlocks():
                 newlist.append(pygame.Rect(i * 20 + 40, k * 20 + 40, 20, 20))
     return newlist
 
-
-def draw_text(text, font, x, y):
-    img = font.render(text, True, (0, 0, 0))
-    screen.blit(img, (x, y))
-
-
 class Stage:
     def __init__(self):
         self.state = 'menu'
