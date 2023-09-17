@@ -1,45 +1,49 @@
 import pygame
-import Button
 import pygame_gui
 
+from button import Button
 from pygame_gui.elements import UIButton
 from pygame_gui.windows import UIColourPickerDialog
 from pygame_gui.elements import UITextEntryLine
 
 
-def drawBlocks(rect):
+def draw_blocks(rect):
     pygame.draw.rect(screen, block_Color, rect, 10)
 
 
 def inc(values, center):
-    counter = 0
-    for i in values:
-        if screen.get_at(i) == block_Color:
-            counter += 1
-    if counter == 3:
-        return True
-    elif counter == 2 and screen.get_at(center) == block_Color:
-        return True
-
-    return False
+    arr = [1 for value in values if screen.get_at(value) == block_Color]
+    counter = len(arr)
+    return counter == 3 or (counter == 2 and screen.get_at(center) == block_Color)
 
 
-def expandBlocks():
-    newlist = list()
-    for i in range(0, 60):
-        for k in range(0, 25):
+def expand_blocks():
+    newblocks = []
+    for i in range(60):
+        for k in range(25):
             x = i * 20 + 41
             y = k * 20 + 41
-            if inc(((x + 20, y + 20),
-                    (x + 20, y),
-                    (x, y + 20),
-                    (x - 20, y - 20),
-                    (x - 20, y),
-                    (x, y - 20),
-                    (x + 20, y - 20),
-                    (x - 20, y + 20)), (x, y)):
-                newlist.append(pygame.Rect(i * 20 + 40, k * 20 + 40, 20, 20))
-    return newlist
+            if inc(
+                    (
+                            (x + 20, y + 20),
+                            (x + 20, y),
+                            (x, y + 20),
+                            (x - 20, y - 20),
+                            (x - 20, y),
+                            (x, y - 20),
+                            (x + 20, y - 20),
+                            (x - 20, y + 20)
+                    ),
+                    (x, y)
+            ):
+                newblocks.append(pygame.Rect(i * 20 + 40, k * 20 + 40, 20, 20))
+    return newblocks
+
+
+def draw_text(text, font, x, y):
+    img = font.render(text, True, (0, 0, 0))
+    screen.blit(img, (x, y))
+
 
 class Stage:
     def __init__(self):
@@ -47,41 +51,39 @@ class Stage:
 
     def main_state(self):
         self.state = 'main'
-        global expand, list_of_blocks, running, current_colour
+        global expand, blocks, running, current_colour
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                running = False
+                exit(0)
 
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE:
-                    expand = not expand
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                expand = not expand
 
             if event.type == CUSTOM and expand:
-                list_of_blocks = expandBlocks()
+                blocks = expand_blocks()
 
             if event.type == pygame.MOUSEBUTTONDOWN:
-                position = pygame.mouse.get_pos()
-                if 680 > position[0] > 600 and 640 > position[1] > 600:
+                x, y = pygame.mouse.get_pos()
+                if x in range(600, 680) and y in range(600, 640):
                     expand = not expand
-                Xr = ((int)(position[0] / 20)) * 20
-                Yr = ((int)(position[1] / 20)) * 20
+                xr = (x // 20) * 20
+                yr = (y // 20) * 20
 
-                if 20 < Xr < 1240 and 20 < Yr < 540:
-                    rectang = pygame.Rect(Xr, Yr, 20, 20)
-                    if not rectang in list_of_blocks:
-                        list_of_blocks.append(rectang)
+                if xr in range(20, 1240) and yr in range(20, 540):
+                    rectang = pygame.Rect(xr, yr, 20, 20)
+                    if rectang in blocks:
+                        blocks.remove(rectang)
                     else:
-                        list_of_blocks.remove(rectang)
+                        blocks.append(rectang)
 
             if event.type == pygame_gui.UI_BUTTON_PRESSED:
                 if event.ui_element == menu2_button:
                     self.state = 'menu'
-                if event.ui_element == exit2_button:
-                    running = False
+                elif event.ui_element == exit2_button:
+                    exit(0)
 
             ui_manager.process_events(event)
         ui_manager.update(time_delta)
-
 
         screen.fill("grey")
         ui_manager.draw_ui(screen)
@@ -98,12 +100,12 @@ class Stage:
         else:
             pygame.draw.rect(screen, 'white', (630, 610, 5, 20))
             pygame.draw.rect(screen, 'white', (645, 610, 5, 20))
-        for i in list_of_blocks:
-            drawBlocks(i)
+        for block in blocks:
+            draw_blocks(block)
         if next_button.draw(screen):
-            list_of_blocks = expandBlocks()
+            blocks = expand_blocks()
         if clear_button.draw(screen):
-            list_of_blocks.clear()
+            blocks.clear()
 
         pygame.display.flip()
 
@@ -112,14 +114,14 @@ class Stage:
         global running, current_colour
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                running = False
+                exit(0)
             if event.type == pygame_gui.UI_BUTTON_PRESSED:
                 if event.ui_element == start_button:
                     self.state = 'main'
                 if event.ui_element == settings_button:
                     self.state = 'settings'
-                if event.ui_element == exit_button:
-                    running = False
+                elif event.ui_element == exit_button:
+                    exit(0)
 
             ui_manager.process_events(event)
 
@@ -143,11 +145,11 @@ class Stage:
                     try:
                         text_entry.kill()
                     except:
-                        return
+                        pass
                     try:
                         colour_picker.kill()
                     except:
-                        return
+                        pass
 
                 if event.ui_element == colour_picker_button:
                     colour_picker = UIColourPickerDialog(pygame.Rect(160, 50, 420, 400),
@@ -158,19 +160,19 @@ class Stage:
                 if event.ui_element == change_speed_button:
                     text_entry = UITextEntryLine(pygame.Rect(160, 50, 100, 40),
                                                  ui_manager)
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_RETURN:
-                    text = text_entry.get_text()
-                    try :
-                        speed_multiplier=float(text)
-                        dT = 300 / speed_multiplier
-                        pygame.time.set_timer(CUSTOM, int(dT))
-                        change_speed_button.set_text('change speed {speed}'.format(speed= 300/dT))
-                    except:
-                        text_entry.kill()
-                        pygame.event.post(pygame.event.Event(pygame_gui.UI_BUTTON_PRESSED,ui_element=change_speed_button))
-                        return
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
+                text = text_entry.get_text()
+                try:
+                    speed_multiplier = float(text)
+                    dT = 300 / speed_multiplier
+                    pygame.time.set_timer(CUSTOM, int(dT))
+                    change_speed_button.set_text('change speed {speed}'.format(speed=300 / dT))
+                except:
                     text_entry.kill()
+                    pygame.event.post(
+                        pygame.event.Event(pygame_gui.UI_BUTTON_PRESSED, ui_element=change_speed_button))
+                    return
+                text_entry.kill()
 
             if event.type == pygame_gui.UI_COLOUR_PICKER_COLOUR_PICKED:
                 block_Color = event.colour
@@ -191,7 +193,6 @@ class Stage:
 stage1 = Stage()
 pygame.init()
 
-running = True
 expand = False
 WINDOW_WIDTH = 1280
 WINDOW_HEIGHT = 720
@@ -201,7 +202,7 @@ screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 CUSTOM = pygame.USEREVENT + 2
 dT = 300
 pygame.time.set_timer(CUSTOM, dT)
-list_of_blocks = list()
+blocks = list()
 block_Color = (255, 0, 0, 255)
 blockSize = 20
 
@@ -272,67 +273,38 @@ picked_colour_surface.fill(current_colour)
 clock = pygame.time.Clock()
 
 next_image = pygame.image.load('images/next.png').convert_alpha()
-next_button = Button.Button(700, 610, next_image, 0.2)
+next_button = Button(700, 610, next_image, 0.2)
 
 clear_image = pygame.image.load('images/clear.png').convert_alpha()
-clear_button = Button.Button(500, 610, clear_image, 0.2)
+clear_button = Button(500, 610, clear_image, 0.2)
 
-while running:
+
+def disable_elements(*elements):
+    for element in elements:
+        element.hide()
+        element.disable()
+
+
+def enable_elements(*elements):
+    for element in elements:
+        element.show()
+        element.enable()
+
+
+while True:
     time_delta = clock.tick(60) / 1000
     if stage1.state == 'menu':
-        settings_button.show()
-        settings_button.enable()
-        start_button.enable()
-        start_button.show()
-        exit_button.enable()
-        exit_button.show()
-        exit2_button.disable()
-        exit2_button.hide()
-        colour_picker_button.disable()
-        colour_picker_button.hide()
-        change_speed_button.disable()
-        change_speed_button.hide()
-        menu_button.disable()
-        menu_button.hide()
-        menu2_button.disable()
-        menu2_button.hide()
+        disable_elements(exit2_button, colour_picker_button, change_speed_button, menu_button, menu2_button)
+        enable_elements(settings_button, start_button, exit_button)
         stage1.menu()
     elif stage1.state == 'main':
-        settings_button.hide()
-        settings_button.disable()
-        start_button.disable()
-        start_button.hide()
-        exit_button.disable()
-        exit_button.hide()
-        exit2_button.enable()
-        exit2_button.show()
-        colour_picker_button.disable()
-        colour_picker_button.hide()
-        change_speed_button.disable()
-        change_speed_button.hide()
-        menu_button.disable()
-        menu_button.hide()
-        menu2_button.enable()
-        menu2_button.show()
+        disable_elements(settings_button, start_button, exit_button, colour_picker_button, change_speed_button,
+                         menu_button)
+        enable_elements(exit2_button, menu2_button)
         stage1.main_state()
     elif stage1.state == 'settings':
-        settings_button.hide()
-        settings_button.disable()
-        start_button.disable()
-        start_button.hide()
-        exit_button.disable()
-        exit_button.hide()
-        exit2_button.disable()
-        exit2_button.hide()
-        colour_picker_button.enable()
-        colour_picker_button.show()
-        change_speed_button.enable()
-        change_speed_button.show()
-        menu_button.enable()
-        menu_button.show()
-        menu2_button.disable()
-        menu2_button.hide()
+        disable_elements(settings_button, start_button, exit_button, exit2_button, menu2_button)
+        enable_elements(colour_picker_button, change_speed_button, menu_button)
         stage1.settings()
 
     clock.tick(60)
-pygame.quit()
